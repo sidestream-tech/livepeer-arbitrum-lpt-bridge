@@ -40,10 +40,8 @@ export const ACL: any = {
       admin: '0xFC3CBed6A3476F7616CC70f078397700136eEBFd',
     },
     l1Migrator: {
-      // L1 governance multisig
-      admin: '0x04746b890d090ae3c4c5dF0101CFD089A4FACA6C',
-      // Asset migration initiator
-      tempAdmin: '0xf410be5D9C64D4280091457355C0883324eB79A5',
+      // L1 Governor
+      admin: '0xFC3CBed6A3476F7616CC70f078397700136eEBFd',
     },
     l1LPTGateway: {
       // L1 governance multisig

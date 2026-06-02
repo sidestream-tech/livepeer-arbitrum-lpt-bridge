@@ -28,4 +28,8 @@ interface IBondingManagerOverride {
         external
         view
         returns (uint256 amount, uint256 withdrawRound);
+
+    function bond(uint256, address) external;
+
+    function getFirstTranscoderInPool() external view returns (address);
 }
