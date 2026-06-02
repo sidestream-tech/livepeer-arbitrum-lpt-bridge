@@ -174,7 +174,7 @@ contract L1Migrator is
      * @notice Executes a L2 call to L2Migrator to migrate transcoder/delegator state from the L1 BondingManager.
      * @dev The term "delegator" here can refer to both a transcoder (self-delegated delegator) and delegator.
      * @param _l1Addr Address migrating from L1
-     * @param _l2Addr Address to use on L2
+     * @param _l2Addr Address to use on L2. Has to match _l1Addr
      * @param _sig Optional EIP-712 signature over a payload that includes _l1Addr and _l2Addr
      * @param _maxGas Gas limit for L2 execution
      * @param _gasPriceBid Gas price bid for L2 execution
@@ -189,7 +189,6 @@ contract L1Migrator is
         uint256 _maxSubmissionCost
     ) external payable whenNotPaused {
         // Authorization
-        // Either msg.sender == _l1Addr OR signer for _sig == _l1Addr
         requireValidMigration(
             _l1Addr,
             _l2Addr,
@@ -222,7 +221,7 @@ contract L1Migrator is
     /**
      * @notice Executes a L2 call to L2Migrator to migrate unbonding locks state from the L1 BondingManager.
      * @param _l1Addr Address migrating from L1
-     * @param _l2Addr Address to use on L2
+     * @param _l2Addr Address to use on L2. Has to match _l1Addr
      * @param _unbondingLockIds IDs of unbonding locks in the L1 BondingManager to migrate
      * @param _sig Optional EIP-712 signature over a payload that includes _l1Addr, _l2Addr and _unbondingLockIds
      * @param _maxGas Gas limit for L2 execution
@@ -239,7 +238,6 @@ contract L1Migrator is
         uint256 _maxSubmissionCost
     ) external payable whenNotPaused {
         // Authorization
-        // Either msg.sender == _l1Addr OR signer for _sig == _l1Addr
         requireValidMigration(
             _l1Addr,
             _l2Addr,
@@ -277,7 +275,7 @@ contract L1Migrator is
     /**
      * @notice Executes a L2 call to L2Migrator to migrate sender deposit/reserve state from the L1 TicketBroker.
      * @param _l1Addr Address migrating from L1
-     * @param _l2Addr Address to use on L2
+     * @param _l2Addr Address to use on L2. Has to match _l1Addr
      * @param _sig Optional EIP-712 signature over a payload that includes _l1Addr and _l2Addr
      * @param _maxGas Gas limit for L2 execution
      * @param _gasPriceBid Gas price bid for L2 execution
@@ -292,7 +290,6 @@ contract L1Migrator is
         uint256 _maxSubmissionCost
     ) external payable whenNotPaused {
         // Authorization
-        // Either msg.sender == _l1Addr OR signer for _sig == _l1Addr
         requireValidMigration(
             _l1Addr,
             _l2Addr,
@@ -321,69 +318,6 @@ contract L1Migrator is
     }
 
     /**
-     * @notice Executes a L2 call to send ETH from the L1BridgeMinter to the L2Migrator.
-     * @dev Anyone can call this function.
-     * @param _maxGas Gas limit for L2 execution
-     * @param _gasPriceBid Gas price bid for L2 execution
-     * @param _maxSubmissionCost Max ETH to pay for retryable ticket base submission fee
-     */
-    function migrateETH(
-        uint256 _maxGas,
-        uint256 _gasPriceBid,
-        uint256 _maxSubmissionCost
-    ) external payable whenNotPaused {
-        uint256 amount = IBridgeMinter(bridgeMinterAddr)
-            .withdrawETHToL1Migrator();
-
-        // Any ETH refunded to the L2 alias of this contract can be used for
-        // other cross-chain txs sent by this contract.
-        // The retryable ticket created will not be cancellable since this contract
-        // currently does not support cross-chain txs to call ArbRetryableTx.cancel().
-        // Regarding the comment below on this contract receiving refunds:
-        // msg.sender also cannot be the address to receive refunds as beneficiary because otherwise
-        // msg.sender could cancel the ticket before it is executed on L2 to receive the L2 call value.
-        sendTxToL2(
-            l2MigratorAddr,
-            address(this), // L2 alias of this contract will receive refunds
-            msg.value + amount,
-            amount,
-            _maxSubmissionCost,
-            _maxGas,
-            _gasPriceBid,
-            ""
-        );
-    }
-
-    /**
-     * @notice Executes a L2 call to send LPT from the L1BridgeMinter to the L2Migrator.
-     * @dev Anyone can call this function.
-     * @param _maxGas Gas limit for L2 execution
-     * @param _gasPriceBid Gas price bid for L2 execution
-     * @param _maxSubmissionCost Max ETH to pay for retryable ticket base submission fee
-     */
-    function migrateLPT(
-        uint256 _maxGas,
-        uint256 _gasPriceBid,
-        uint256 _maxSubmissionCost
-    ) external payable whenNotPaused onlyRole(DEFAULT_ADMIN_ROLE) {
-        uint256 amount = IBridgeMinter(bridgeMinterAddr)
-            .withdrawLPTToL1Migrator();
-
-        // Approve L1LPTGateway to pull tokens
-        ApproveLike(tokenAddr).approve(l1LPTGatewayAddr, amount);
-        // Trigger cross-chain transfer with L1LPTGateway which will pull and escrow tokens
-        // Forward msg.value to outboundTransfer() to be used for cross-chain tx
-        IL1LPTGateway(l1LPTGatewayAddr).outboundTransfer{value: msg.value}(
-            tokenAddr,
-            l2MigratorAddr,
-            amount,
-            _maxGas,
-            _gasPriceBid,
-            abi.encode(_maxSubmissionCost, "")
-        );
-    }
-
-    /**
      * @notice Pause the contract
      * @dev Only callable by addresses with governor role
      */
@@ -402,7 +336,7 @@ contract L1Migrator is
     /**
      * @notice Return L2 calldata and MigrateDelegatorParams to use for a L2 call on L2Migrator
      * @param _l1Addr Address migrating from L1
-     * @param _l2Addr Address to use on L2
+     * @param _l2Addr Address to use on L2. Has to match _l1Addr
      * @return data L2 calldata for finalizeMigrateDelegator() in L2Migrator
      * @return params MigrateDelegatorParams to use for finalizeMigrateDelegator() in L2Migrator
      */
@@ -448,7 +382,7 @@ contract L1Migrator is
     /**
      * @notice Return L2 calldata and MigrateSenderParams to use for a L2 call on L2Migrator
      * @param _l1Addr Address migrating from L1
-     * @param _l2Addr Address to use on L2
+     * @param _l2Addr Address to use on L2. Has to match _l1Addr
      * @return data L2 calldata for finalizeMigrateSender() in L2Migrator
      * @return params MigrateSenderParams to use for finalizeMigrateSender() in L2Migrator
      */
@@ -481,7 +415,7 @@ contract L1Migrator is
     /**
      * @notice Return L2 calldata and MigrateUnbondingLocksParams to use for a L2 call on L2Migrator
      * @param _l1Addr Address migrating from L1
-     * @param _l2Addr Address to use on L2
+     * @param _l2Addr Address to use on L2. Has to match _l1Addr
      * @param _unbondingLockIds IDs of unbonding locks in L1 BondingManager to migrate
      * @return data L2 calldata for finalizeMigrateUnbondingLocks() in L2Migrator
      * @return params MigrateUnbondingLocksParams to use for finalizeMigrateUnbondingLocks() in L2Migrator
@@ -499,12 +433,13 @@ contract L1Migrator is
 
         uint256 total;
         uint256 unbondingLockIdsLen = _unbondingLockIds.length;
+        require(unbondingLockIdsLen > 0, "EMPTY_LOCK_IDS");
         for (uint256 i; i < unbondingLockIdsLen; i++) {
             (uint256 amount, ) = bondingManager.getDelegatorUnbondingLock(
                 _l1Addr,
                 _unbondingLockIds[i]
             );
-
+            require(amount > 0, "ZERO_LOCK_AMOUNT");
             total += amount;
         }
 
@@ -533,7 +468,7 @@ contract L1Migrator is
         bytes32 _structHash,
         bytes memory _sig
     ) private view {
-        require(_l2Addr != address(0), "INVALID_L2_ADDR");
+        require(_l1Addr == _l2Addr, "L2_ADDR_MISMATCH");
         require(
             msg.sender == _l1Addr ||
                 recoverSigner(_structHash, _sig) == _l1Addr,

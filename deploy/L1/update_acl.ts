@@ -37,13 +37,6 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
   await execute(
       'L1Migrator',
       {from: deployer, log: true},
-      'grantRole',
-      ADMIN_ROLE,
-      ACL[hre.network.name].l1Migrator.tempAdmin,
-  );
-  await execute(
-      'L1Migrator',
-      {from: deployer, log: true},
       'revokeRole',
       ADMIN_ROLE,
       deployer,

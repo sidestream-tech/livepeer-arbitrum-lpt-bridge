@@ -61,7 +61,7 @@ npx hardhat migrate-sender --network mainnet --l1addr <L1_ADDRESS> --l2addr <L2_
 ``` 
 
 - `--l1addr` is the broadcaster's L1 address.
-- `--l2addr` is the L2 address to use for the broadcaster. You can specify the current L1 address as long as it is not a contract.
+- `--l2addr` is the L2 address to use for the broadcaster. Has to match L1 address; Msig migrations are no longer supported.
 - `--sig` is a signature authorizing migration. See below.
 
 Creating a signature to authorize migration of a broadcaster:
@@ -79,7 +79,7 @@ npx hardhat migrate-unbonding-locks --network mainnet --l1addr <L1_ADDRESS> --l2
 ```
 
 - `--l1addr` is the L1 address with unbonding locks.
-- `--l2addr` is the L2 address to stake the tokens from the unbonding locks for. You can specify the current L1 address as long as it is not a contract.
+- `--l2addr` is the L2 address to stake the tokens from the unbonding locks for. Has to match L1 address; Msig migrations are no longer supported.
 - `--sig` is a signature authorizing migration. See below.
 
 Creating a signature to authorize migration of unbonding locks:
